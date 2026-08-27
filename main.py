@@ -1,15 +1,12 @@
 import os
 import requests
-import uvicorn
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
 from mcp.server.fastmcp import FastMCP
-from mcp.server.sse import SseServerTransport
-from starlette.requests import Request
 
-# Inisialisasi FastMCP
-mcp = FastMCP("Threads MCP Server")
+# Baca port dari Render
+port = int(os.environ.get("PORT", 10000))
+
+# Inisialisasi FastMCP resmi
+mcp = FastMCP("Threads MCP Server", host="0.0.0.0", port=port)
 
 THREADS_ACCESS_TOKEN = "THAAUaUiZAzuSFBYlpVeWdLb2hLYlAwMUNUZAW5OY1Y0QnBkY1p2cDgwRFZAIWkZARTXR3X01QenRueTRuTXpXeGYwalktOGVWRldueWhfLVlrdnI5LWd1a3RnWHBwYXdKSHh3U21BWVlqcGRXQXdPOFFpNmE0d2dRUTgyMjk2b2JWeEZAERHFfYWVkaEI3ck51QWsZD"
 THREADS_USER_ID = "1436315018311969"
@@ -51,38 +48,6 @@ def publish_thread(text: str) -> dict:
     publish_res = requests.post(publish_url, data=publish_payload).json()
     return {"status": "success", "response": publish_res}
 
-# Setup Aplikasi FastAPI
-app = FastAPI()
-
-# Tambahkan CORS agar diizinkan oleh Google Gemini
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Transport SSE MCP
-sse = SseServerTransport("/messages/")
-
-@app.api_route("/", methods=["GET", "HEAD"])
-async def root():
-    return PlainTextResponse("Threads MCP Server is running!")
-
-@app.get("/sse")
-async def handle_sse(request: Request):
-    async with sse.connect_sse(
-        request.scope, request.receive, request._send
-    ) as streams:
-        await mcp._mcp_server.run(
-            streams[0], streams[1], mcp._mcp_server.create_initialization_options()
-        )
-
-@app.post("/messages/")
-async def handle_messages(request: Request):
-    await sse.handle_post_message(request.scope, request.receive, request._send)
-
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    # Menjalankan server SSE bawaan FastMCP
+    mcp.run(transport="sse")
