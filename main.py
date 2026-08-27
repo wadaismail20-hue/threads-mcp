@@ -1,10 +1,14 @@
 import os
 import requests
+import uvicorn
+from fastapi import FastAPI
+from fastapi.responses import PlainTextResponse
 from mcp.server.fastmcp import FastMCP
+from mcp.server.sse import SseServerTransport
+from starlette.requests import Request
 
-# Konfigurasi host dan port langsung saat inisialisasi FastMCP
-port = int(os.environ.get("PORT", 10000))
-mcp = FastMCP("Threads MCP Server", host="0.0.0.0", port=port)
+# Inisialisasi FastMCP
+mcp = FastMCP("Threads MCP Server")
 
 THREADS_ACCESS_TOKEN = "THAAUaUiZAzuSFBYlpVeWdLb2hLYlAwMUNUZAW5OY1Y0QnBkY1p2cDgwRFZAIWkZARTXR3X01QenRueTRuTXpXeGYwalktOGVWRldueWhfLVlrdnI5LWd1a3RnWHBwYXdKSHh3U21BWVlqcGRXQXdPOFFpNmE0d2dRUTgyMjk2b2JWeEZAERHFfYWVkaEI3ck51QWsZD"
 THREADS_USER_ID = "1436315018311969"
@@ -46,6 +50,27 @@ def publish_thread(text: str) -> dict:
     publish_res = requests.post(publish_url, data=publish_payload).json()
     return {"status": "success", "response": publish_res}
 
+# Setup Aplikasi Web FastAPI
+app = FastAPI()
+sse = SseServerTransport("/messages/")
+
+@app.get("/")
+async def root():
+    return PlainTextResponse("Threads MCP Server is running!")
+
+@app.get("/sse")
+async def handle_sse(request: Request):
+    async with sse.connect_sse(
+        request.scope, request.receive, request._send
+    ) as streams:
+        await mcp._mcp_server.run(
+            streams[0], streams[1], mcp._mcp_server.create_initialization_options()
+        )
+
+@app.post("/messages/")
+async def handle_messages(request: Request):
+    await sse.handle_post_message(request.scope, request.receive, request._send)
+
 if __name__ == "__main__":
-    # Jalankan bawaan SSE transport resmi FastMCP
-    mcp.run(transport="sse")
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
