@@ -1,10 +1,15 @@
 import os
 import requests
+import uvicorn
 from mcp.server.fastmcp import FastMCP
+from starlette.responses import PlainTextResponse
 
-# Baca port dinamis dari Render (default 8000) dan bind ke 0.0.0.0
-port = int(os.environ.get("PORT", 8000))
-mcp = FastMCP("Threads MCP Server", host="0.0.0.0", port=port)
+mcp = FastMCP("Threads MCP Server")
+
+# Tambahkan route root agar Render Health Check sukses (200 OK)
+@mcp._sse_app.route("/")
+async def root(request):
+    return PlainTextResponse("MCP Threads Server is Live!")
 
 THREADS_ACCESS_TOKEN = "THAAUaUiZAzuSFBYlpYemhOcDl4X2dva2FuRDFIRFpsZAFAzSHBNcTRUVnlWVzhpMDduaUhnTUU2ZAW85NkpMR042ZAVpDdjNlbTRFdGNZAdUNqUzZAnRHRZAdTlvSE1EMVVzbGxMWFNYNEhNVmlOZAUlqRnhlV2dTWDdIaVRLWHJRaHN5XzNZAeEN2eGxMV0Q5YXh4NjQZD"
 THREADS_USER_ID = "1436315018311969"
@@ -47,4 +52,6 @@ def publish_thread(text: str) -> dict:
     return {"status": "success", "response": publish_res}
 
 if __name__ == "__main__":
-    mcp.run(transport="sse")
+    port = int(os.environ.get("PORT", 10000))
+    # Jalankan app SSE FastAPI/Starlette langsung ke 0.0.0.0
+    uvicorn.run(mcp._sse_app, host="0.0.0.0", port=port)
