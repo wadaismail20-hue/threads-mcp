@@ -1,11 +1,11 @@
 import os
 import requests
 import uvicorn
-from fastapi import FastAPI
-from fastapi.responses import PlainTextResponse
 from mcp.server.fastmcp import FastMCP
+from starlette.applications import Starlette
+from starlette.responses import PlainTextResponse
+from starlette.routing import Route, Mount
 
-# Inisialisasi FastMCP
 mcp = FastMCP("Threads MCP Server")
 
 THREADS_ACCESS_TOKEN = "THAAUaUiZAzuSFBYlpYemhOcDl4X2dva2FuRDFIRFpsZAFAzSHBNcTRUVnlWVzhpMDduaUhnTUU2ZAW85NkpMR042ZAVpDdjNlbTRFdGNZAdUNqUzZAnRHRZAdTlvSE1EMVVzbGxMWFNYNEhNVmlOZAUlqRnhlV2dTWDdIaVRLWHJRaHN5XzNZAeEN2eGxMV0Q5YXh4NjQZD"
@@ -48,24 +48,16 @@ def publish_thread(text: str) -> dict:
     publish_res = requests.post(publish_url, data=publish_payload).json()
     return {"status": "success", "response": publish_res}
 
-# Buat FastAPI App utama
-app = FastAPI()
+async def homepage(request):
+    return PlainTextResponse("Threads MCP Server is running!")
 
-@app.get("/")
-def root():
-    return PlainTextResponse("MCP Threads Server is Live!")
-
-# Mount MCP SSE handler bawaan FastMCP
-try:
-    sse_handler = mcp.sse_app()
-    app.mount("/", sse_handler)
-except Exception:
-    pass
+app = Starlette(
+    routes=[
+        Route("/", homepage),
+        Mount("/", app=mcp.sse_app()),
+    ]
+)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    # Jalankan native MCP runner jika sse_app tidak digunakan
-    try:
-        mcp.run(transport="sse")
-    except TypeError:
-        uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=port)
