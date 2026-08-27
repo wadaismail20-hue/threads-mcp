@@ -6,8 +6,11 @@ from starlette.responses import PlainTextResponse
 
 mcp = FastMCP("Threads MCP Server")
 
-# Tambahkan route root agar Render Health Check sukses (200 OK)
-@mcp._sse_app.route("/")
+# Mengambil aplikasi Starlette SSE bawaan FastMCP
+app = mcp.sse_app()
+
+# Menambahkan route root agar Render Health Check sukses (200 OK)
+@app.route("/")
 async def root(request):
     return PlainTextResponse("MCP Threads Server is Live!")
 
@@ -53,5 +56,4 @@ def publish_thread(text: str) -> dict:
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    # Jalankan app SSE FastAPI/Starlette langsung ke 0.0.0.0
-    uvicorn.run(mcp._sse_app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=port)
