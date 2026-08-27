@@ -1,14 +1,12 @@
 import os
 import requests
-import uvicorn
 from mcp.server.fastmcp import FastMCP
-from starlette.applications import Starlette
-from starlette.responses import PlainTextResponse
-from starlette.routing import Route, Mount
 
-mcp = FastMCP("Threads MCP Server")
+# Konfigurasi host dan port langsung saat inisialisasi FastMCP
+port = int(os.environ.get("PORT", 10000))
+mcp = FastMCP("Threads MCP Server", host="0.0.0.0", port=port)
 
-THREADS_ACCESS_TOKEN = "THAAUaUiZAzuSFBYlpYemhOcDl4X2dva2FuRDFIRFpsZAFAzSHBNcTRUVnlWVzhpMDduaUhnTUU2ZAW85NkpMR042ZAVpDdjNlbTRFdGNZAdUNqUzZAnRHRZAdTlvSE1EMVVzbGxMWFNYNEhNVmlOZAUlqRnhlV2dTWDdIaVRLWHJRaHN5XzNZAeEN2eGxMV0Q5YXh4NjQZD"
+THREADS_ACCESS_TOKEN = "THAAUaUiZAzuSFBYlpVeWdLb2hLYlAwMUNUZAW5OY1Y0QnBkY1p2cDgwRFZAIWkZARTXR3X01QenRueTRuTXpXeGYwalktOGVWRldueWhfLVlrdnI5LWd1a3RnWHBwYXdKSHh3U21BWVlqcGRXQXdPOFFpNmE0d2dRUTgyMjk2b2JWeEZAERHFfYWVkaEI3ck51QWsZD"
 THREADS_USER_ID = "1436315018311969"
 
 @mcp.tool()
@@ -48,16 +46,6 @@ def publish_thread(text: str) -> dict:
     publish_res = requests.post(publish_url, data=publish_payload).json()
     return {"status": "success", "response": publish_res}
 
-async def homepage(request):
-    return PlainTextResponse("Threads MCP Server is running!")
-
-app = Starlette(
-    routes=[
-        Route("/", homepage),
-        Mount("/", app=mcp.sse_app()),
-    ]
-)
-
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    # Jalankan bawaan SSE transport resmi FastMCP
+    mcp.run(transport="sse")
