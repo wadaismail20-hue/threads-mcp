@@ -1,7 +1,10 @@
+import os
 import requests
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("Threads MCP Server")
+# Baca port dinamis dari Render (default 8000) dan bind ke 0.0.0.0
+port = int(os.environ.get("PORT", 8000))
+mcp = FastMCP("Threads MCP Server", host="0.0.0.0", port=port)
 
 THREADS_ACCESS_TOKEN = "MASUKKAN_ACCESS_TOKEN_ANDA"
 THREADS_USER_ID = "MASUKKAN_NUMERIC_USER_ID_ANDA"
