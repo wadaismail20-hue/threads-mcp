@@ -2,11 +2,13 @@ import os
 import requests
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from mcp.server.fastmcp import FastMCP
 from mcp.server.sse import SseServerTransport
 from starlette.requests import Request
 
+# Inisialisasi FastMCP
 mcp = FastMCP("Threads MCP Server")
 
 THREADS_ACCESS_TOKEN = "THAAUaUiZAzuSFBYlpVeWdLb2hLYlAwMUNUZAW5OY1Y0QnBkY1p2cDgwRFZAIWkZARTXR3X01QenRueTRuTXpXeGYwalktOGVWRldueWhfLVlrdnI5LWd1a3RnWHBwYXdKSHh3U21BWVlqcGRXQXdPOFFpNmE0d2dRUTgyMjk2b2JWeEZAERHFfYWVkaEI3ck51QWsZD"
@@ -49,15 +51,25 @@ def publish_thread(text: str) -> dict:
     publish_res = requests.post(publish_url, data=publish_payload).json()
     return {"status": "success", "response": publish_res}
 
+# Setup Aplikasi FastAPI
 app = FastAPI()
+
+# Tambahkan CORS agar diizinkan oleh Google Gemini
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Transport SSE MCP
 sse = SseServerTransport("/messages/")
 
-# Dukung HEAD dan GET untuk Health Check Render & Gemini
 @app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     return PlainTextResponse("Threads MCP Server is running!")
 
-# Endpoint SSE utama
 @app.get("/sse")
 async def handle_sse(request: Request):
     async with sse.connect_sse(
@@ -67,9 +79,7 @@ async def handle_sse(request: Request):
             streams[0], streams[1], mcp._mcp_server.create_initialization_options()
         )
 
-# Endpoint pesan untuk protokol MCP (mendukung route /messages/ dan fallback root /)
 @app.post("/messages/")
-@app.post("/")
 async def handle_messages(request: Request):
     await sse.handle_post_message(request.scope, request.receive, request._send)
 
